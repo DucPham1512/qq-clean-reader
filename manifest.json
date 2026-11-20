@@ -39,6 +39,10 @@
     }
   ],
   "browser_specific_settings": {
-    "gecko": { "id": "qq-clean-reader@ducpham1512", "strict_min_version": "128.0" }
+    "gecko": {
+      "id": "qq-clean-reader@ducpham1512",
+      "strict_min_version": "140.0",
+      "data_collection_permissions": { "required": ["none"] }
+    }
   }
 }
