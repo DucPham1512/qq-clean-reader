@@ -15,6 +15,27 @@
     "blockUrlFilters": [
       "/template/frontend/js/widget/",
       "/api/widget/data"
+    ],
+    "thirdPartyAllowlist": {
+      "enabled": true,
+      "frameHosts": [
+        "google.com",
+        "facebook.com",
+        "youtube.com",
+        "challenges.cloudflare.com"
+      ]
+    },
+    "protectedHosts": [
+      "truyenvua.com",
+      "googleapis.com",
+      "gstatic.com",
+      "google.com",
+      "facebook.com",
+      "cloudflare.com",
+      "cloudflareinsights.com",
+      "googletagmanager.com",
+      "raw.githubusercontent.com",
+      "github.com"
     ]
   },
   "cosmetic": {
@@ -29,9 +50,7 @@
       "#top-banner-reading-container",
       "[id^='ad_info']",
       "span.text-center:has(+ #top-banner-reading-container)",
-      "span.text-center:has(+ [id^='ad_info'])",
-      "[data-zone='top_content']",
-      "[data-zone='bottom_content']"
+      "span.text-center:has(+ [id^='ad_info'])"
     ],
     "zIndexThreshold": 2147483000
   },

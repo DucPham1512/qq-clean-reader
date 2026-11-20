@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <h1>QQ Clean Reader</h1>
+
+  <section id="move" hidden>
+    <p class="warn">TruyenQQ đã đổi sang tên miền mới: <b id="move-hosts"></b></p>
+    <button id="grant">Bật chặn quảng cáo trên tên miền mới</button>
+  </section>
+
+  <section>
+    <div class="row"><span>Phiên bản</span><b id="ext"></b></div>
+    <div class="row"><span>Bộ quy tắc</span><b id="rules"></b></div>
+    <div class="row"><span>Kiểm tra lần cuối</span><b id="check"></b></div>
+    <button id="update">Kiểm tra cập nhật</button>
+  </section>
+
+  <section>
+    <h2>Đã học trên thiết bị này <span id="learned-count"></span></h2>
+    <ul id="learned"></ul>
+    <div class="buttons">
+      <button id="report">Báo cáo</button>
+      <button id="clear" class="secondary">Xoá dữ liệu học</button>
+    </div>
+    <p class="note">Nút Báo cáo mở một issue trên GitHub để bạn xem lại trước khi gửi. Không có dữ liệu nào được gửi tự động.</p>
+  </section>
+
+  <script src="popup.js"></script>
+</body>
+</html>

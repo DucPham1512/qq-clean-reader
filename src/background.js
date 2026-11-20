@@ -1,83 +1,215 @@
+// Background (service worker on Chrome, event page on Firefox). ES module.
+import { REMOTE_RULES_URL, REPO, UPDATE_PERIOD_MIN, MAX_REMOTE_BYTES, MAX_DETECTIONS } from "./config.js";
+import { validateRules } from "./validate.js";
+import { compareVersions, buildDnrRules, learnHosts, buildReportUrl } from "./lib.js";
+
+const TAG = "[QQ]";
 const BUNDLED_URL = chrome.runtime.getURL("rules/rules.json");
-const MAX_DETECTIONS = 100;
+const MANIFEST_HOSTS = ["truyenqqko.com"];           // covered by manifest content_scripts
+const originFor = (h) => `*://*.${h}/*`;
 
-async function loadBundledRules() {
-  const res = await fetch(BUNDLED_URL);
-  return res.json();
+// ===================== applying rules =====================
+
+async function getState() {
+  return chrome.storage.local.get(["activeRules", "remoteRules", "learned", "detections", "lastCheck"]);
 }
 
-// Convert our rules format into declarativeNetRequest rules
-function buildDnrRules(rules) {
-  const siteHosts = rules.site.hosts;
-  const out = [];
-  let id = 1;
-
-  // 1. Third-party ad domains, only when requested from the comic site
-  if (rules.network.blockDomains.length) {
-    out.push({
-      id: id++,
-      priority: 1,
-      action: { type: "block" },
-      condition: {
-        requestDomains: rules.network.blockDomains,   // also matches subdomains
-        initiatorDomains: siteHosts                   // don't affect other sites
-      }
-    });
-  }
-
-  // 2. The site's own ad paths (widget loader, ad API)
-  for (const path of rules.network.blockUrlFilters) {
-    out.push({
-      id: id++,
-      priority: 1,
-      action: { type: "block" },
-      condition: {
-        urlFilter: path,
-        requestDomains: siteHosts                     // st.truyenqqko.com included
-      }
-    });
-  }
-  return out;
-}
-
+// Apply rules + learned hosts to the network layer, store them for content scripts,
+// and register content scripts on any extra (granted) site domains.
 async function applyRules(rules) {
+  const { learned = {} } = await chrome.storage.local.get("learned");
   const old = await chrome.declarativeNetRequest.getDynamicRules();
   await chrome.declarativeNetRequest.updateDynamicRules({
-    removeRuleIds: old.map(r => r.id),     // replace everything at once
-    addRules: buildDnrRules(rules)
+    removeRuleIds: old.map((r) => r.id),
+    addRules: buildDnrRules(rules, Object.keys(learned))
   });
-  await chrome.storage.local.set({ activeRules: rules });  // content.js reads this
-  console.log("[QQ] applied rules", rules.version);
+  await chrome.storage.local.set({ activeRules: rules });
+  // Non-critical extras: a failure here (e.g. an API missing on a mobile browser)
+  // must not undo the network rules above.
+  await syncExtraSiteScripts(rules).catch((e) => console.warn(TAG, "extra-domain scripts:", e.message));
+  await updateBadge(rules).catch((e) => console.warn(TAG, "badge:", e.message));
+  console.log(TAG, "applied rules", rules.version, "learned:", Object.keys(learned).length);
 }
+
+// Choose the newest valid rules: bundled vs. last good remote copy.
+async function applyBest() {
+  const bundled = await (await fetch(BUNDLED_URL)).json();
+  const { remoteRules } = await chrome.storage.local.get("remoteRules");
+  const best = remoteRules && validateRules(remoteRules).ok && compareVersions(remoteRules.version, bundled.version) > 0
+    ? remoteRules : bundled;
+  await applyRules(best);
+  return best;
+}
+
+// ===================== step 5: remote updater =====================
+
+async function checkForUpdate() {
+  const result = { ts: Date.now(), status: "", version: "" };
+  try {
+    const res = await fetch(REMOTE_RULES_URL, { cache: "no-cache", credentials: "omit" });
+    if (!res.ok) throw new Error("HTTP " + res.status);
+    const text = await res.text();
+    if (text.length > MAX_REMOTE_BYTES) throw new Error("file too large");
+    const remote = JSON.parse(text);
+
+    const { ok, errors } = validateRules(remote);
+    if (!ok) throw new Error("invalid rules: " + errors.slice(0, 3).join("; "));
+
+    const { activeRules } = await chrome.storage.local.get("activeRules");
+    result.version = remote.version;
+    if (activeRules && compareVersions(remote.version, activeRules.version) <= 0) {
+      result.status = "up-to-date";
+    } else {
+      try {
+        await applyRules(remote);
+        await chrome.storage.local.set({ remoteRules: remote });   // last good copy
+        result.status = "updated";
+      } catch (e) {
+        // The browser refused the new rules: roll back to what worked before.
+        if (activeRules) await applyRules(activeRules);
+        throw new Error("apply failed, rolled back: " + e.message);
+      }
+    }
+  } catch (e) {
+    result.status = "error: " + e.message;
+    console.warn(TAG, "update check failed:", e.message);
+  }
+  await chrome.storage.local.set({ lastCheck: result });
+  return result;
+}
+
+// ===================== step 5: site moved to a new domain (option C) =====================
+
+async function extraHosts(rules) {
+  const extra = rules.site.hosts.filter((h) => !MANIFEST_HOSTS.includes(h));
+  const granted = [], missing = [];
+  for (const h of extra) {
+    (await chrome.permissions.contains({ origins: [originFor(h)] }) ? granted : missing).push(h);
+  }
+  return { granted, missing };
+}
+
+// Content scripts for granted extra domains are registered at runtime.
+async function syncExtraSiteScripts(rules) {
+  const ids = ["qq-main-extra", "qq-iso-extra"];
+  const existing = await chrome.scripting.getRegisteredContentScripts({ ids });
+  if (existing.length) await chrome.scripting.unregisterContentScripts({ ids: existing.map((s) => s.id) });
+  const { granted } = await extraHosts(rules);
+  if (!granted.length) return;
+  const matches = granted.map(originFor);
+  await chrome.scripting.registerContentScripts([
+    { id: "qq-main-extra", matches, js: ["src/defaults.js", "src/main-world.js"], runAt: "document_start", world: "MAIN" },
+    { id: "qq-iso-extra", matches, js: ["src/defaults.js", "src/content.js"], runAt: "document_start" }
+  ]);
+}
+
+// "!" on the toolbar icon when the site has a domain we don't have permission for yet.
+async function updateBadge(rules) {
+  const { missing } = await extraHosts(rules);
+  await chrome.action.setBadgeText({ text: missing.length ? "!" : "" });
+  if (missing.length) await chrome.action.setBadgeBackgroundColor({ color: "#d93025" });
+}
+
+// ===================== step 6: detection log + local learning =====================
+
+let queue = Promise.resolve();
+const serial = (fn) => (queue = queue.then(fn).catch((e) => console.error(TAG, e)));
+
+async function relearn() {
+  const { detections = [], learned = {}, activeRules } = await getState();
+  if (!activeRules) return;
+  const next = learnHosts(detections, learned, activeRules);
+  const changed = JSON.stringify(Object.keys(next).sort()) !== JSON.stringify(Object.keys(learned).sort());
+  await chrome.storage.local.set({ learned: next });
+  if (changed) {
+    console.log(TAG, "learned hosts changed:", Object.keys(next));
+    await applyRules(activeRules);
+  }
+}
+
+function recordDetection(msg) {
+  serial(async () => {
+    const { detections = [] } = await chrome.storage.local.get("detections");
+    detections.push({
+      ts: Date.now(),
+      kind: String(msg.kind).slice(0, 60),
+      info: JSON.stringify(msg.info ?? null).slice(0, 300),
+      page: String(msg.page).slice(0, 200)
+    });
+    await chrome.storage.local.set({ detections: detections.slice(-MAX_DETECTIONS) });
+    await relearn();
+  });
+}
+
+// ===================== messages (content scripts + popup) =====================
+
+chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+  if (!msg || typeof msg.type !== "string") return;
+
+  // From content scripts on the site
+  if (msg.type === "qq-detect" && sender.tab) { recordDetection(msg); return; }
+
+  // From the popup (an extension page: no sender.tab)
+  if (sender.tab) return;
+  const handlers = {
+    "popup-status": async () => {
+      const s = await getState();
+      const rules = s.activeRules;
+      return {
+        extVersion: chrome.runtime.getManifest().version,
+        rulesVersion: rules?.version,
+        lastCheck: s.lastCheck || null,
+        missingHosts: rules ? (await extraHosts(rules)).missing : [],
+        learned: s.learned || {},
+        detectionCount: (s.detections || []).length
+      };
+    },
+    "check-update": () => checkForUpdate(),
+    "hosts-granted": async () => { const r = (await getState()).activeRules; await applyRules(r); return true; },
+    "clear-learned": () => serial(async () => {
+      await chrome.storage.local.set({ learned: {}, detections: [] });
+      await applyRules((await getState()).activeRules);
+    }).then(() => true),
+    "report-url": async () => {
+      const s = await getState();
+      return buildReportUrl({
+        repo: REPO,
+        extVersion: chrome.runtime.getManifest().version,
+        rulesVersion: s.activeRules?.version,
+        learned: s.learned || {},
+        detections: s.detections || []
+      });
+    }
+  };
+  const h = handlers[msg.type];
+  if (!h) return;
+  h().then(sendResponse, (e) => sendResponse({ error: e.message }));
+  return true;   // async response
+});
+
+// ===================== lifecycle =====================
 
 chrome.runtime.onInstalled.addListener(async () => {
   try {
-    await applyRules(await loadBundledRules());
+    await applyBest();
+    await chrome.alarms.create("qq-update", { delayInMinutes: 1, periodInMinutes: UPDATE_PERIOD_MIN });
   } catch (e) {
-    console.error("[QQ] failed to apply rules", e);
+    console.error(TAG, "install setup failed", e);
   }
 });
 
-// ---------- detection log (input for step 6: local learning + reports) ----------
-// Kept on this device only. Content scripts report what layers 3-4 caught.
-let writeQueue = Promise.resolve();
+chrome.runtime.onStartup.addListener(async () => {
+  // Dynamic DNR rules persist, but registered content scripts may not on every browser.
+  const { activeRules } = await chrome.storage.local.get("activeRules");
+  if (activeRules) await syncExtraSiteScripts(activeRules).catch((e) => console.error(TAG, e));
+  if (!(await chrome.alarms.get("qq-update"))) {
+    await chrome.alarms.create("qq-update", { delayInMinutes: 1, periodInMinutes: UPDATE_PERIOD_MIN });
+  }
+});
 
-function clean(value, max = 300) {
-  return JSON.stringify(value ?? null).slice(0, max);
-}
+chrome.alarms.onAlarm.addListener((a) => { if (a.name === "qq-update") checkForUpdate(); });
 
-chrome.runtime.onMessage.addListener((msg, sender) => {
-  if (!msg || msg.type !== "qq-detect" || !sender.tab) return;
-  const entry = {
-    ts: Date.now(),
-    kind: String(msg.kind).slice(0, 60),
-    info: clean(msg.info),
-    page: String(msg.page).slice(0, 200)
-  };
-  // Serialize writes so parallel messages don't overwrite each other.
-  writeQueue = writeQueue.then(async () => {
-    const { detections = [] } = await chrome.storage.local.get("detections");
-    detections.push(entry);
-    await chrome.storage.local.set({ detections: detections.slice(-MAX_DETECTIONS) });
-  }).catch(e => console.error("[QQ] detection log failed", e));
+chrome.permissions.onAdded.addListener(async () => {
+  const { activeRules } = await chrome.storage.local.get("activeRules");
+  if (activeRules) await applyRules(activeRules);
 });

@@ -8,7 +8,14 @@
   const R = globalThis.QQ_DEFAULT_RULES;
   try { delete globalThis.QQ_DEFAULT_RULES; } catch (_) {}   // don't leave it for the page
   if (!R) return;
-  const cfg = R.script;
+  // The current site host is always allowed, so the guards keep working (and don't
+  // break the site's own scripts) after the site moves to a new domain.
+  const here = location.hostname.replace(/^www\./, "");
+  const cfg = {
+    ...R.script,
+    allowedScriptHosts: [...R.script.allowedScriptHosts, here],
+    allowedOpenHosts: [...R.script.allowedOpenHosts, here]
+  };
 
   const inList = (host, list) => list.some((d) => host === d || host.endsWith("." + d));
   const hostOf = (url) => { try { return new URL(String(url), location.href).hostname; } catch (_) { return ""; } };

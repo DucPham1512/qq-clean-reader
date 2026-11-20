@@ -64,25 +64,6 @@
     detect("overlay", { tag: el.tagName, cls: String(el.className).slice(0, 80) });
   }
 
-  // ---------- layer 3c: ad labels ("Quảng cáo") ----------
-  // CSS can't match text, and :has() is missing in older browsers, so hide
-  // leaf elements whose whole text is a known ad label.
-  function checkLabel(el) {
-    if (!el || el.nodeType !== 1 || el.firstElementChild || el.dataset.qqHidden) return;
-    const labels = rules.cosmetic.labelTexts;
-    if (!labels || !labels.length) return;
-    const text = (el.textContent || "").trim();
-    if (text.length > 50 || !labels.includes(text)) return;
-    el.dataset.qqHidden = "1";
-    el.style.setProperty("display", "none", "important");
-  }
-  function sweepLabels() {
-    if (!document.body) return;
-    const labels = rules.cosmetic.labelTexts;
-    if (!labels || !labels.length) return;
-    document.body.querySelectorAll("span, div, p, small, strong").forEach(checkLabel);
-  }
-
   // ---------- layer 4 (DOM half): scripts ----------
   function hostOf(url) {
     try { return new URL(url, location.href).hostname; } catch (_) { return ""; }
@@ -134,9 +115,7 @@
 
   // ---------- observer ----------
   function handleNode(n) {
-    if (n.nodeType === 3) return checkLabel(n.parentElement);   // label text arrives after its element
     if (n.nodeType !== 1) return;
-    checkLabel(n);
     if (n.tagName === "SCRIPT") return inspectScript(n);
     checkOverlay(n);
     if (n.firstElementChild) n.querySelectorAll("script").forEach(inspectScript);
@@ -148,14 +127,12 @@
   mo.observe(document, { childList: true, subtree: true });
   // Anything parsed before we started (normally nothing at document_start).
   document.querySelectorAll("script").forEach(inspectScript);
-  document.addEventListener("DOMContentLoaded", sweepLabels, { once: true });
 
   // ---------- newer rules from storage (written by background / remote updater) ----------
   chrome.storage.local.get("activeRules").then(({ activeRules }) => {
     if (activeRules && activeRules.version !== rules.version) {
       rules = activeRules;
       renderCss();
-      sweepLabels();
       console.debug(TAG, "using stored rules", rules.version);
     }
   }).catch(() => {});

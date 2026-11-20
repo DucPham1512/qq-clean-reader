@@ -22,9 +22,19 @@
     "network": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["blockDomains", "blockUrlFilters"],
+      "required": ["blockDomains", "blockUrlFilters", "thirdPartyAllowlist", "protectedHosts"],
       "properties": {
         "blockDomains": { "$ref": "#/$defs/domainList" },
+        "thirdPartyAllowlist": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["enabled", "frameHosts"],
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "frameHosts": { "$ref": "#/$defs/domainList" }
+          }
+        },
+        "protectedHosts": { "$ref": "#/$defs/domainList", "minItems": 1 },
         "blockUrlFilters": {
           "type": "array",
           "maxItems": 200,
@@ -44,12 +54,6 @@
           "maxItems": 200,
           "uniqueItems": true,
           "items": { "type": "string", "minLength": 2, "maxLength": 200, "pattern": "^[^{}<>;]+$" }
-        },
-        "labelTexts": {
-          "type": "array",
-          "maxItems": 20,
-          "uniqueItems": true,
-          "items": { "type": "string", "minLength": 2, "maxLength": 50 }
         },
         "zIndexThreshold": { "type": "integer", "minimum": 100000, "maximum": 2147483647 }
       }
