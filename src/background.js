@@ -1,4 +1,5 @@
 const BUNDLED_URL = chrome.runtime.getURL("rules/rules.json");
+const MAX_DETECTIONS = 100;
 
 async function loadBundledRules() {
   const res = await fetch(BUNDLED_URL);
@@ -45,7 +46,7 @@ async function applyRules(rules) {
     removeRuleIds: old.map(r => r.id),     // replace everything at once
     addRules: buildDnrRules(rules)
   });
-  await chrome.storage.local.set({ activeRules: rules });  // content scripts read this in steps 3–4
+  await chrome.storage.local.set({ activeRules: rules });  // content.js reads this
   console.log("[QQ] applied rules", rules.version);
 }
 
@@ -55,4 +56,28 @@ chrome.runtime.onInstalled.addListener(async () => {
   } catch (e) {
     console.error("[QQ] failed to apply rules", e);
   }
+});
+
+// ---------- detection log (input for step 6: local learning + reports) ----------
+// Kept on this device only. Content scripts report what layers 3-4 caught.
+let writeQueue = Promise.resolve();
+
+function clean(value, max = 300) {
+  return JSON.stringify(value ?? null).slice(0, max);
+}
+
+chrome.runtime.onMessage.addListener((msg, sender) => {
+  if (!msg || msg.type !== "qq-detect" || !sender.tab) return;
+  const entry = {
+    ts: Date.now(),
+    kind: String(msg.kind).slice(0, 60),
+    info: clean(msg.info),
+    page: String(msg.page).slice(0, 200)
+  };
+  // Serialize writes so parallel messages don't overwrite each other.
+  writeQueue = writeQueue.then(async () => {
+    const { detections = [] } = await chrome.storage.local.get("detections");
+    detections.push(entry);
+    await chrome.storage.local.set({ detections: detections.slice(-MAX_DETECTIONS) });
+  }).catch(e => console.error("[QQ] detection log failed", e));
 });

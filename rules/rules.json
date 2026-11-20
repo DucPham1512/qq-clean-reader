@@ -1,10 +1,8 @@
 {
   "schemaVersion": 1,
-  "version": "2026.11.20-1",
+  "version": "2026.11.20-3",
   "site": {
-    "hosts": [
-      "truyenqqko.com"
-    ],
+    "hosts": ["truyenqqko.com"],
     "hostRegex": "^(www\\.)?truyenqq[a-z0-9-]*\\.[a-z.]+$"
   },
   "network": {
@@ -24,7 +22,16 @@
       ".w-backdrop",
       "[class*='w-overlay']",
       "[id^='__clb-spot_']",
-      "[data-cl-spot]"
+      "[data-cl-spot]",
+      "footer .right.light",
+      "#textlink-container",
+      "#textlink_hide-container",
+      "#top-banner-reading-container",
+      "[id^='ad_info']",
+      "span.text-center:has(+ #top-banner-reading-container)",
+      "span.text-center:has(+ [id^='ad_info'])",
+      "[data-zone='top_content']",
+      "[data-zone='bottom_content']"
     ],
     "zIndexThreshold": 2147483000
   },
@@ -32,17 +39,26 @@
     "blockInlineScripts": [
       {
         "name": "clb-loader",
-        "attrs": {
-          "data-cfasync": "false"
-        },
-        "textIncludesAny": [
-          "WebAssembly",
-          "AGFzbQ"
-        ]
+        "attrs": { "data-cfasync": "false" },
+        "textIncludesAny": ["WebAssembly", "AGFzbQ"]
       }
     ],
-    "removeScriptsWithAttrOnError": true,
-    "neuterWindowOpen": true,
-    "neuterDocumentClickHijack": true
+    "stripFallbackHandlers": true,
+    "guardWindowOpen": true,
+    "guardClickHijack": true,
+    "allowedScriptHosts": [
+      "truyenqqko.com",
+      "ajax.googleapis.com",
+      "www.googletagmanager.com",
+      "static.cloudflareinsights.com"
+    ],
+    "allowedOpenHosts": [
+      "truyenqqko.com",
+      "truyentv.link",
+      "facebook.com",
+      "discord.com",
+      "t.me",
+      "google.com"
+    ]
   }
 }
