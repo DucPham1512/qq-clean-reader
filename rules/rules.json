@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "version": "2026.11.20-1",
+  "site": {
+    "hosts": [
+      "truyenqqko.com"
+    ],
+    "hostRegex": "^(www\\.)?truyenqq[a-z0-9-]*\\.[a-z.]+$"
+  },
+  "network": {
+    "blockDomains": [
+      "mplmncb.com",
+      "avalanchetremorunfilled.com",
+      "agtcmuohbt.in",
+      "oakreoccupyunveiled.com"
+    ],
+    "blockUrlFilters": [
+      "/template/frontend/js/widget/",
+      "/api/widget/data"
+    ]
+  },
+  "cosmetic": {
+    "hideSelectors": [
+      ".w-backdrop",
+      "[class*='w-overlay']",
+      "[id^='__clb-spot_']",
+      "[data-cl-spot]"
+    ],
+    "zIndexThreshold": 2147483000
+  },
+  "script": {
+    "blockInlineScripts": [
+      {
+        "name": "clb-loader",
+        "attrs": {
+          "data-cfasync": "false"
+        },
+        "textIncludesAny": [
+          "WebAssembly",
+          "AGFzbQ"
+        ]
+      }
+    ],
+    "removeScriptsWithAttrOnError": true,
+    "neuterWindowOpen": true,
+    "neuterDocumentClickHijack": true
+  }
+}

@@ -1,0 +1,15 @@
+{
+  "manifest_version": 3,
+  "name": "QQ Clean Reader",
+  "version": "0.1.0",
+  "description": "Blocks gambling ads and redirects on TruyenQQ.",
+  "permissions": ["declarativeNetRequest", "storage"],
+  "host_permissions": ["*://*.truyenqqko.com/*"],
+  "background": {
+    "service_worker": "src/background.js",
+    "scripts": ["src/background.js"]
+  },
+  "browser_specific_settings": {
+    "gecko": { "id": "qq-clean-reader@ducpham1512", "strict_min_version": "128.0" }
+  }
+}
