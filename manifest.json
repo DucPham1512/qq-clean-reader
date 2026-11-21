@@ -1,8 +1,9 @@
 {
   "manifest_version": 3,
-  "name": "QQ Clean Reader",
+  "name": "__MSG_extName__",
   "version": "0.3.2",
-  "description": "Blocks gambling ads and redirects on TruyenQQ.",
+  "description": "__MSG_extDescription__",
+  "default_locale": "vi",
   "permissions": ["declarativeNetRequest", "storage", "alarms", "scripting"],
   "host_permissions": ["*://*.truyenqqko.com/*"],
   "optional_host_permissions": ["*://*/*"],
@@ -18,7 +19,7 @@
     "128": "icons/icon-128.png"
   },
   "action": {
-    "default_title": "QQ Clean Reader",
+    "default_title": "__MSG_actionTitle__",
     "default_icon": {
       "16": "icons/icon-16.png",
       "32": "icons/icon-32.png"

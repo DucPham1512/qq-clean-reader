@@ -1,0 +1,25 @@
+{
+  "extName": { "message": "QQ Clean Reader" },
+  "extDescription": { "message": "Chặn quảng cáo cờ bạc và chuyển hướng trên TruyenQQ." },
+  "actionTitle": { "message": "QQ Clean Reader" },
+
+  "movedDomain": { "message": "TruyenQQ đã đổi sang tên miền mới:" },
+  "grantHosts": { "message": "Bật chặn quảng cáo trên tên miền mới" },
+  "version": { "message": "Phiên bản" },
+  "ruleset": { "message": "Bộ quy tắc" },
+  "lastCheck": { "message": "Kiểm tra lần cuối" },
+  "checkUpdate": { "message": "Kiểm tra cập nhật" },
+  "learnedTitle": { "message": "Đã học trên thiết bị này" },
+  "report": { "message": "Báo cáo" },
+  "clearLearned": { "message": "Xoá dữ liệu học" },
+  "reportNote": { "message": "Nút Báo cáo mở một issue trên GitHub để bạn xem lại trước khi gửi. Không có dữ liệu nào được gửi tự động." },
+
+  "none": { "message": "chưa có" },
+  "statusError": { "message": "lỗi" },
+  "statusUpdated": { "message": "đã cập nhật" },
+  "statusUpToDate": { "message": "đã mới nhất" },
+  "pages": {
+    "message": "$COUNT$ trang",
+    "placeholders": { "count": { "content": "$1" } }
+  }
+}

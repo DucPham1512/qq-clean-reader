@@ -1,0 +1,25 @@
+{
+  "extName": { "message": "QQ Clean Reader" },
+  "extDescription": { "message": "Blocks gambling ads and redirects on TruyenQQ." },
+  "actionTitle": { "message": "QQ Clean Reader" },
+
+  "movedDomain": { "message": "TruyenQQ has moved to a new domain:" },
+  "grantHosts": { "message": "Turn on ad blocking for the new domain" },
+  "version": { "message": "Version" },
+  "ruleset": { "message": "Rules" },
+  "lastCheck": { "message": "Last checked" },
+  "checkUpdate": { "message": "Check for updates" },
+  "learnedTitle": { "message": "Learned on this device" },
+  "report": { "message": "Report" },
+  "clearLearned": { "message": "Clear learned data" },
+  "reportNote": { "message": "Report opens a GitHub issue for you to review before sending. Nothing is sent automatically." },
+
+  "none": { "message": "none yet" },
+  "statusError": { "message": "error" },
+  "statusUpdated": { "message": "updated" },
+  "statusUpToDate": { "message": "up to date" },
+  "pages": {
+    "message": "$COUNT$ pages",
+    "placeholders": { "count": { "content": "$1" } }
+  }
+}
